@@ -1,0 +1,10 @@
+[project]
+name = "pc-ues-time-control-lite"
+version = "2.3.0"
+description = "Windows 儿童电脑使用时长控制（Tkinter + 内置 Web 管理 + 可选服务化保护）"
+readme = "README.md"
+authors = [
+    { name = "midpoint", email = "midpoint@126.com" }
+]
+requires-python = ">=3.10"
+dependencies = []
