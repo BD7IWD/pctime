@@ -312,8 +312,22 @@ class AgentApp:
             'locked': self.locker.is_locked or int(s['locked']) == 1,
             'remaining': max(0, quota - used),
             'quota': quota,
+            'quota_minutes': max(1, int(s.get('quota_minutes') or 120)),
             'used': used,
         }
+
+    def save_quota(self, minutes) -> tuple[bool, str]:
+        try:
+            q = int(str(minutes).strip())
+        except (TypeError, ValueError):
+            return False, '请输入 1–1440 之间的整数分钟。'
+        if not (1 <= q <= 1440):
+            return False, '每日额度需在 1–1440 分钟之间。'
+        store.update_settings(quota_minutes=q)
+        store.add_event('quota_changed', f'每日额度改为 {q} 分钟')
+        self._reload()
+        self.update_ui()
+        return True, str(q)
 
     def _reload(self) -> dict:
         self.settings = store.get_settings()

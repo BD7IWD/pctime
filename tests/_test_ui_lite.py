@@ -130,7 +130,8 @@ class FakeApp:
         self.calls = []
         self.state = {'locked': False, 'enabled': False, 'remaining': 7200,
                       'hotkey': 'Ctrl+Alt+M', 'port': 8080,
-                      'url': 'http://127.0.0.1:8080', 'tray_hidden': 0}
+                      'url': 'http://127.0.0.1:8080', 'tray_hidden': 0,
+                      'quota_minutes': 120}
 
     def snapshot(self):
         return dict(self.state)
@@ -154,6 +155,12 @@ class FakeApp:
         self.calls.append('unlock')
         self.state['locked'] = False
 
+    def save_quota(self, minutes):
+        q = int(minutes)
+        self.calls.append(('quota', q))
+        self.state['quota_minutes'] = q
+        return True, str(q)
+
     def save_hotkey(self, text):
         return True, text
 
@@ -171,6 +178,8 @@ class FakeApp:
 fake = FakeApp()
 panel = ControlPanel(root, fake)
 panel.withdraw()
+panel._sync_fields()
+check('面板额度字段', panel.quota.get() == '120', panel.quota.get())
 panel.refresh()
 check('面板显示剩余时间', '今日剩余' in panel.time_lbl.cget('text'), panel.time_lbl.cget('text'))
 check('待机时按钮为开始', panel.btn_main.cget('text') == '开始管控', panel.btn_main.cget('text'))
@@ -180,6 +189,18 @@ panel.refresh()
 check('开始后按钮为暂停', panel.btn_main.cget('text') == '暂停管控', panel.btn_main.cget('text'))
 panel._toggle_lock()
 check('点击锁定调用 panel_lock', fake.calls[-1] == 'lock', fake.calls)
+
+import ui.panel as panel_mod  # noqa: E402
+old_info = panel_mod.messagebox.showinfo
+panel_mod.messagebox.showinfo = lambda *a, **k: None
+try:
+    panel.quota.delete(0, 'end')
+    panel.quota.insert(0, '180')
+    panel._save_quota()
+finally:
+    panel_mod.messagebox.showinfo = old_info
+check('面板保存每日额度', ('quota', 180) in fake.calls, fake.calls)
+check('额度字段更新', panel.quota.get() == '180', panel.quota.get())
 panel.destroy()
 root.destroy()
 

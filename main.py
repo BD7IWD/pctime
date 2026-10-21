@@ -633,8 +633,25 @@ class App:
             'locked': self.locker.is_locked,
             'remaining': self.remaining,
             'quota': self.quota,
+            'quota_minutes': max(1, int(self.settings.get('quota_minutes') or 120)),
             'used': self.used,
         }
+
+    def save_quota(self, minutes) -> tuple[bool, str]:
+        try:
+            q = int(str(minutes).strip())
+        except (TypeError, ValueError):
+            return False, '请输入 1–1440 之间的整数分钟。'
+        if not (1 <= q <= 1440):
+            return False, '每日额度需在 1–1440 分钟之间。'
+        store.update_settings(quota_minutes=q)
+        store.add_event('quota_changed', f'每日额度改为 {q} 分钟')
+        self.settings = store.get_settings()
+        self._cfg_ver = self.settings.get('updated_at', '')
+        self.quota = max(60, q * 60)
+        self.remaining = max(0, self.quota - self.used - self.pending)
+        self.update_ui()
+        return True, str(q)
 
     def panel_start(self) -> None:
         if self.locker.is_locked:

@@ -14,7 +14,7 @@ from pathlib import Path
 
 APP_NAME = 'PCTimeControlLite'
 APP_TITLE = '儿童电脑使用时长控制'
-APP_VER = '2.3.0'
+APP_VER = '2.3.1'
 DEFAULT_PORT = 8080
 DEFAULT_HOTKEY = 'Ctrl+Alt+M'
 

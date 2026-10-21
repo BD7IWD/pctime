@@ -128,7 +128,7 @@ class SetupWindow(tk.Toplevel):
 class ControlPanel(tk.Toplevel):
     """快捷键唤出的本地控制面板。"""
 
-    W, H = 460, 600
+    W, H = 460, 660
 
     def __init__(self, root: tk.Tk, app):
         super().__init__(root)
@@ -166,6 +166,19 @@ class ControlPanel(tk.Toplevel):
 
         box = ttk.LabelFrame(wrap, text=' 本机设置 ')
         box.pack(fill='x', pady=(0, 12))
+
+        tk.Label(box, text='每天允许使用多久（分钟，1–1440）', bg='#f2f5fa',
+                 fg='#7c8a9e', font=(FONT_CN, 9), anchor='w').pack(
+            fill='x', padx=10, pady=(8, 2))
+        qrow = tk.Frame(box, bg='#f2f5fa')
+        qrow.pack(fill='x', padx=10)
+        self.quota = ttk.Entry(qrow, width=8)
+        self.quota.pack(side='left', ipady=4)
+        ttk.Button(qrow, text='保存', command=self._save_quota, width=6).pack(
+            side='left', padx=(6, 0))
+        self.quota_hint = tk.Label(qrow, text='修改后立即生效', bg='#f2f5fa',
+                                   fg='#7c8a9e', font=(FONT_CN, 9), anchor='w')
+        self.quota_hint.pack(side='left', padx=(10, 0), fill='x', expand=True)
 
         tk.Label(box, text='唤出面板快捷键（例：Ctrl+Alt+M）', bg='#f2f5fa',
                  fg='#7c8a9e', font=(FONT_CN, 9), anchor='w').pack(
@@ -230,6 +243,8 @@ class ControlPanel(tk.Toplevel):
 
     def _sync_fields(self) -> None:
         st = self.app.snapshot()
+        self.quota.delete(0, 'end')
+        self.quota.insert(0, str(st.get('quota_minutes') or 120))
         self.hotkey.delete(0, 'end')
         self.hotkey.insert(0, st.get('hotkey') or config.DEFAULT_HOTKEY)
         self.port.delete(0, 'end')
@@ -281,6 +296,18 @@ class ControlPanel(tk.Toplevel):
         else:
             self.app.panel_lock()
         self.refresh()
+
+    def _save_quota(self) -> None:
+        ok, msg = self.app.save_quota(self.quota.get())
+        if ok:
+            try:
+                self.quota.delete(0, 'end')
+                self.quota.insert(0, msg)
+            except Exception:
+                pass
+            messagebox.showinfo('每日额度', f'已设为 {msg} 分钟。', parent=self)
+        else:
+            messagebox.showwarning('每日额度', msg, parent=self)
 
     def _save_hotkey(self) -> None:
         ok, msg = self.app.save_hotkey(self.hotkey.get())
