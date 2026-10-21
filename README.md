@@ -93,7 +93,7 @@
 ## 系统要求
 
 - **受管电脑**：Windows 10 / Windows 11（64 位）
-- **开发/打包**：Python 3.10+（推荐 3.12），安装时保留 **Tcl/Tk** 组件；`python -m pip install pyinstaller`
+- **开发/打包**：Python 3.10+（推荐 3.12），安装时保留 **Tcl/Tk** 组件；`python -m pip install -r requirements-dev.txt`
 - **服务模式**：安装/卸载需要管理员权限；孩子建议使用**标准用户**账户；家长使用手机网页或管理员账户
 - 手机和电脑需要在同一局域网；受管电脑需允许监听端口入站
 
@@ -425,16 +425,20 @@ SYSTEM 代理创建的高完整性托盘可能受 Windows UIPI 限制。请使�
 
 ## 开发与测试
 
+更完整的开发/维护说明见 [CONTRIBUTING.md](CONTRIBUTING.md)，架构说明见 [CLAUDE.md](CLAUDE.md)。
+
 Windows 上从源码运行（不需要 PyQt5）：
 
 ```bat
+python -m pip install -r requirements-dev.txt
 python main.py
 ```
 
-需要 Python 3.10+ 且带 Tcl/Tk。可选使用 uv：
+需要 Python 3.10+ 且带 Tcl/Tk。`requirements-dev.txt` 只包含 PyInstaller/Ruff，**运行程序本身不依赖第三方包**。可选使用 uv：
 
 ```bat
 uv sync
+uv pip install -r requirements-dev.txt
 uv run python main.py
 ```
 
@@ -464,7 +468,7 @@ powershell -ExecutionPolicy Bypass -File tests\run_all.ps1
 | `_test_e2e_lite.py` | 时间耗尽直接蓝屏（无任何提醒）、手机解锁恢复、暂停不锁 |
 | `_test_units_lite.py` | 快捷键解析、端口校验、连点计数、静音状态机、数据库迁移、登录限流、指令分流 |
 | `_test_backdoor.py` | 连点 9 次不触发、第 10 次触发、超时不累计（纯逻辑） |
-| `_test_ui_lite.py` | Tkinter 进度、连点绑定、首次设置提交、后门密码框、控制面板刷新 |
+| `_test_ui_lite.py` | Tkinter 进度、连点绑定、首次设置提交、后门密码框、控制面板刷新/每日额度 |
 | `_test_service_units.py` | 服务数据目录、备份恢复、JSON 重建、ACL 参数、服务启动命令、任务管理器策略 |
 
 单独跑某个测试：先启动客户端（测试前设置上述环境变量），再执行对应脚本。
@@ -473,10 +477,12 @@ powershell -ExecutionPolicy Bypass -File tests\run_all.ps1
 
 > 服务模式的 SCM、SYSTEM 会话代理、ACL 和安装/卸载需要在 Windows 上手工验收；`run_all.ps1` 覆盖的是便携模式和纯逻辑。
 
-可选代码检查：
+可选代码检查（pyproject 已配置 Ruff 只检查 F 类规则）：
 
 ```bat
-uvx ruff check --select F821,F401,F811,F841 .
+ruff check .
+# 或
+uvx ruff check .
 ```
 
 ---
@@ -510,7 +516,7 @@ uvx ruff check --select F821,F401,F811,F841 .
 │   ├── install.py           安装/卸载
 │   ├── wts.py / scm.py      Windows 会话/服务控制
 │   └── acl.py / backup.py / policy.py / fileguard.py
-├── tests/                   回归测试
+├── tests/                   回归测试（说明见 tests/README.md）
 ├── docs/                    设计文档与界面预览
 ├── app.ico                  图标（含 16~256 七个尺寸）
 ├── ICO/logo.png             图标设计原稿
@@ -519,7 +525,10 @@ uvx ruff check --select F821,F401,F811,F841 .
 ├── pyproject.toml           uv 开发环境（无运行时依赖）
 ├── uv.lock
 ├── CHANGELOG.md
-├── CLAUDE.md                项目开发说明
+├── CONTRIBUTING.md          开发/维护/发布说明
+├── CLAUDE.md                项目架构与开发说明
+├── requirements-dev.txt     开发/打包依赖
+├── .editorconfig
 └── README.md
 ```
 

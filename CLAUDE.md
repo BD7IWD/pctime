@@ -10,7 +10,7 @@ Windows 单机版「儿童电脑使用时长控制」：Tkinter + Win32 ctypes �
 - 两种运行模式：
   - **便携模式**：数据在 `%LOCALAPPDATA%\PCTimeControlLite\`，单进程 Tk + Web + 内置 watchdog。
   - **服务模式（2.3.0）**：程序在 `C:\Program Files\PCTimeControlLite\`，数据在 `C:\ProgramData\PCTimeControlLite\`，由 `PCTimeGuard`（SYSTEM 守护）、`PCTimeWeb`（LocalService 状态+Web）和用户会话中的 SYSTEM 代理组成。
-- 自 2.2.0 起不再使用 PyQt5；运行时零第三方 Python 依赖（Tkinter 是标准库），打包只需要 PyInstaller。2.3.0 增加服务化强化保护。
+- 自 2.2.0 起不再使用 PyQt5；运行时零第三方 Python 依赖（Tkinter 是标准库），打包只需要 PyInstaller。2.3.0 增加服务化强化保护；2.3.1 本地面板支持修改每日额度。
 - 没有 lint / 格式化配置；测试是手写脚本，不是 pytest。
 
 ## 常用命令
@@ -30,6 +30,8 @@ PCTimeControlLite.exe --uninstall
 
 - 安装/卸载代码只支持 frozen exe；源码模式直接 `--install` 会提示先打包。
 - 服务模式的数据目录由 `--data-dir` 在**导入 core.config 之前**通过 `PCTL_DATA_DIR` 环境变量确定（见 `main._early_args`）。
+
+开发/打包依赖：`python -m pip install -r requirements-dev.txt`（仅 PyInstaller/Ruff）；更完整的人类开发说明见 `CONTRIBUTING.md`，测试说明见 `tests/README.md`。
 
 回归测试（会清空数据、启动真实客户端并真实触发锁屏）：
 
@@ -163,6 +165,35 @@ powershell -ExecutionPolicy Bypass -File tests\run_all.ps1
 - **任务管理器策略**：`settings.disable_taskmgr`（默认 1）；守护服务对非管理员会话写 `HKU\<SID>\...\Policies\System\DisableTaskMgr=1` 并每次轮询恢复；网页「本机设置」可关闭。
 - **边界**：不实现真正的进程隐藏（需要内核驱动/rootkit）；标准用户不能结束 SYSTEM/LocalService 进程或删除受 ACL 保护的文件，但管理员、安全模式、物理接触仍可绕过。
 - 服务模式的托盘由 SYSTEM（高完整性）代理创建，低完整性 Explorer 的托盘回调可能受 UIPI 限制；快捷键/本地面板/手机是可靠入口。
+
+## 维护与发布
+
+### 版本号同步
+
+- `core/config.py` 的 `APP_VER`
+- `version_info.txt`
+- `pyproject.toml`，随后运行 `uv lock` 更新 `uv.lock`
+- `CHANGELOG.md`
+
+### 新增设置检查清单
+
+1. `core/store.py`：`SCHEMA`、`_MIGRATIONS`、`get_settings` 默认值、`update_settings` 白名单。
+2. `web/server.py` + `web/pages.py`：表单/路由/校验；POST 需登录与同源校验。
+3. `ui/panel.py`：控件、`_sync_fields`；在 `main.App` 与 `service.agent.AgentApp` 实现方法并加入 `snapshot()`。
+4. 生效逻辑：便携模式 `main.App.tick`/`_sync_settings`；服务模式 `service.web_core.CoreService.tick` 或 `service.agent.AgentApp._poll`。
+5. 测试：纯逻辑加 `_test_units_lite.py`/`_test_service_units.py`；UI 加 `_test_ui_lite.py`；Web 加 `_test_web_lite.py`。
+6. 文档：README、使用说明、CHANGELOG；架构变化更新本文件。
+
+### 发布前检查
+
+```bat
+python -m compileall -q main.py autostart.py core ui web service tests
+ruff check .
+powershell -ExecutionPolicy Bypass -File tests\run_all.ps1
+build.bat
+```
+
+服务模式再手工验收：`--install`、标准用户进程/文件保护、任务管理器策略、备份恢复、`--uninstall`。
 
 ## 约定与陷阱
 

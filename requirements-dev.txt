@@ -1,0 +1,7 @@
+# 开发/打包依赖（运行时不需要任何第三方 Python 包）
+pyinstaller>=6.0
+ruff>=0.6
+
+# 仅用于从 ICO/logo.png 重新生成 app.ico（可选）
+# pillow>=10
+# opencv-python>=4.8
